@@ -566,6 +566,17 @@ export default function PrescriptionFormView({
                           <input type="number" value={item.tempo_descanso} onChange={e => handleUpdateCartItem(index, 'tempo_descanso', e.target.value)} className="w-full bg-[#f4f7f6] dark:bg-neutral-800 rounded-lg py-1 px-2 text-xs font-bold outline-none" />
                         </div>
                       </div>
+                      <div>
+                        <label className="text-[8px] font-black text-neutral-400 uppercase">Local</label>
+                        <select
+                          value={item.local_execucao}
+                          onChange={e => handleUpdateCartItem(index, 'local_execucao', e.target.value)}
+                          className="w-full bg-[#f4f7f6] dark:bg-neutral-800 rounded-lg py-1 px-2 text-xs font-bold outline-none"
+                        >
+                          <option value="estúdio">Estúdio</option>
+                          <option value="casa">Casa</option>
+                        </select>
+                      </div>
                     </div>
                   )
                 })}
@@ -597,6 +608,17 @@ export default function PrescriptionFormView({
               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1.5 block">Repetições</label>
               <input type="text" value={exConfig.repeticoes} onChange={e => setExConfig({...exConfig, repeticoes: e.target.value})} className="w-full bg-[#f4f7f6] dark:bg-neutral-800 rounded-xl p-3 text-xs font-bold outline-none" placeholder="Ex: 12 ou Isom." />
             </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1.5 block">Local</label>
+            <select
+              value={exConfig.local_execucao}
+              onChange={e => setExConfig({...exConfig, local_execucao: e.target.value as 'estúdio' | 'casa'})}
+              className="w-full bg-[#f4f7f6] dark:bg-neutral-800 rounded-xl p-3 text-xs font-bold outline-none"
+            >
+              <option value="estúdio">Estúdio</option>
+              <option value="casa">Casa</option>
+            </select>
           </div>
           <button type="submit" className="w-full bg-[#0a5c4e] text-white py-3.5 rounded-xl font-black text-xs uppercase cursor-pointer">Adicionar ao Plano</button>
         </form>
