@@ -93,7 +93,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-50 dark:border-neutral-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Clock className="w-4 h-4 text-teal-600" />
-                Treinos Recentes
+                Treinos realizados nos últimos 7 dias
               </h3>
             </div>
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
@@ -109,8 +109,9 @@ export default function Dashboard() {
                   <img src={workout.avatar} alt={workout.name} className="w-9 h-9 rounded-full object-cover border border-slate-100 dark:border-neutral-700" />
                   <div className="min-w-0 flex-1">
                     <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{workout.name}</h4>
+                    <p className="text-[10px] text-slate-500 dark:text-neutral-400 truncate">{workout.protocol}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[9px] font-bold text-neutral-400 uppercase">{workout.time}</span>
+                      <span className="text-[9px] font-bold text-neutral-400 uppercase">{workout.date} • {workout.time}</span>
                       <span className="text-[8px] font-black text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-1.5 py-0.5 rounded uppercase tracking-tighter">
                         {workout.status}
                       </span>
@@ -119,7 +120,7 @@ export default function Dashboard() {
                 </div>
               ))}
               {(!recentWorkouts || recentWorkouts.length === 0) && (
-                <p className="text-xs text-slate-400 text-center py-6">Nenhuma atividade registrada hoje.</p>
+                <p className="text-xs text-slate-400 text-center py-6">Nenhuma atividade registrada nos últimos 7 dias.</p>
               )}
             </div>
           </div>

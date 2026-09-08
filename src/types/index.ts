@@ -111,6 +111,7 @@ export interface RecentWorkout {
   patientId: string;
   name: string;
   protocol: string;
+  date: string;
   time: string;
   status: string;
   avatar: string;

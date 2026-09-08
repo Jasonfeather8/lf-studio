@@ -175,6 +175,7 @@ export const dashboardService = {
         patientId: a.patient_id,
         name: a.patients?.profiles?.nome_completo || 'Paciente',
         protocol: a.prescription_exercises?.prescriptions?.titulo || 'Treino Realizado',
+        date: new Date(a.data_execucao).toLocaleDateString('pt-BR'),
         time: new Date(a.data_execucao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         status: a.prescription_exercises?.local_execucao || 'Estúdio',
         avatar: a.patients?.profiles?.avatar_url || 'https://ui-avatars.com/api/?name=' + a.patients?.profiles?.nome_completo
