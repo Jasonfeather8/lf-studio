@@ -25,6 +25,7 @@ export const adherenceService = {
   markCompleted: async (
     prescriptionExerciseId: string,
     patientId: string,
+    sentiuDor: boolean,
     borgRating?: number,
     dorRelato?: string
   ): Promise<PatientAdherence> => {
@@ -47,7 +48,7 @@ export const adherenceService = {
     if (existing) {
       const { data: updated, error: uError } = await supabase
         .from('patient_adherence')
-        .update({ borg_rating: borgRating, dor_relato: dorRelato })
+        .update({ borg_rating: borgRating, dor_relato: dorRelato, sentiu_dor: sentiuDor })
         .eq('id', existing.id)
         .select()
         .single();
@@ -62,6 +63,7 @@ export const adherenceService = {
         patient_id: patientId,
         borg_rating: borgRating,
         dor_relato: dorRelato,
+        sentiu_dor: sentiuDor,
         data_execucao: new Date().toISOString()
       })
       .select()

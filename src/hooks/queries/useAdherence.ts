@@ -60,8 +60,8 @@ export function usePatientEvolutionQuery(patientId: string | null, month: number
 export function useMarkCompletedMutation(patientId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ prescriptionExerciseId, patId, borgRating, dorRelato }: { prescriptionExerciseId: string; patId: string; borgRating?: number; dorRelato?: string }) => 
-      adherenceService.markCompleted(prescriptionExerciseId, patId, borgRating, dorRelato),
+    mutationFn: ({ prescriptionExerciseId, patId, borgRating, dorRelato, sentiuDor }: { prescriptionExerciseId: string; patId: string; borgRating?: number; dorRelato?: string; sentiuDor: boolean }) =>
+      adherenceService.markCompleted(prescriptionExerciseId, patId, sentiuDor, borgRating, dorRelato),
     onSuccess: () => {
       // Invalida estatísticas globais
       queryClient.invalidateQueries({ queryKey: KEYS.ADHERENCE_STATS });

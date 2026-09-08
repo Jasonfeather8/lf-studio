@@ -18,6 +18,7 @@ export const dashboardService = {
           patient_id,
           borg_rating,
           dor_relato,
+          sentiu_dor,
           data_execucao,
           prescription_exercises!inner (
             prescription_id
@@ -32,7 +33,7 @@ export const dashboardService = {
           )
         `)
         .gte('data_execucao', sevenDaysAgo.toISOString())
-        .or('dor_relato.neq."",borg_rating.gte.5')
+        .eq('sentiu_dor', true)
         .order('data_execucao', { ascending: false });
 
       if (userId) {

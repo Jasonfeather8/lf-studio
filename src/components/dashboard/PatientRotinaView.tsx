@@ -56,7 +56,8 @@ function PatientRotinaView() {
         prescriptionExerciseId: activePlayExercise.id,
         patId: patientRecord.id,
         borgRating: feedback.borg,
-        dorRelato: feedback.dor ? feedback.relato : undefined
+        dorRelato: feedback.dor ? feedback.relato : undefined,
+        sentiuDor: feedback.dor
       });
 
       setShowFeedbackModal(false);

@@ -70,6 +70,7 @@ export interface PatientAdherence {
   status_sincronizacao: boolean; // For offline-first queuing
   borg_rating?: number; // Added: Scale 1-10
   dor_relato?: string;
+  sentiu_dor: boolean;
 }
 
 
