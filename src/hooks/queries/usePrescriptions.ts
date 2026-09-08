@@ -10,6 +10,14 @@ export function usePrescriptionsQuery(patientId?: string | null, page = 1, pageS
   });
 }
 
+export function usePrescriptionQuery(prescriptionId: string | null) {
+  return useQuery({
+    queryKey: KEYS.PRESCRIPTION(prescriptionId || ''),
+    queryFn: () => prescriptionService.getById(prescriptionId || ''),
+    enabled: !!prescriptionId,
+  });
+}
+
 export function usePrescriptionExercisesQuery(prescriptionId: string | null) {
   return useQuery({
     queryKey: KEYS.PRESCRIPTION_EXERCISES(prescriptionId || ''),
@@ -36,6 +44,7 @@ export function useUpdatePrescriptionMutation() {
       prescriptionService.update(id, updates, exercises),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: KEYS.PRESCRIPTIONS });
+      queryClient.invalidateQueries({ queryKey: KEYS.PRESCRIPTION(variables.id) });
       queryClient.invalidateQueries({ queryKey: KEYS.PRESCRIPTION_EXERCISES(variables.id) });
     },
   });

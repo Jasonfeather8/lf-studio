@@ -10,14 +10,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useUIStore } from '../../store/uiStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { Patient, Prescription, PrescriptionExercise, Exercise } from '../../types';
-import { 
+import {
   usePatientsQuery, useCreatePatientMutation, useUpdatePatientMutation, useDeletePatientMutation,
   useExercisesQuery,
-  usePrescriptionsQuery, useCreatePrescriptionMutation, useUpdatePrescriptionMutation, useDeletePrescriptionMutation,
+  usePrescriptionQuery, useCreatePrescriptionMutation, useUpdatePrescriptionMutation, useDeletePrescriptionMutation,
   usePrescriptionExercisesQuery, usePatientAdherenceQuery, useProfilesQuery, usePatientExamsQuery } from '../../hooks';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line } from 'recharts';
 import Modal from '../Modal';
-import { supabase } from '@/integrations/supabase/client';
 import { getVideoInfo } from '../../utils/video';
 
 interface PrescriptionFormViewProps {
@@ -27,6 +26,14 @@ interface PrescriptionFormViewProps {
   triggerToast: (message: string, patientId?: string, type?: 'success' | 'info') => void;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return fallback;
+}
+
 export default function PrescriptionFormView({
   editingPrescriptionId,
   duplicatePrescriptionId,
@@ -34,12 +41,20 @@ export default function PrescriptionFormView({
   triggerToast,
 }: PrescriptionFormViewProps) {
   const { activePatientId } = useUIStore();
-  const { user } = useAuth();
-  const { data: exercisesData } = useExercisesQuery();
-  const { data: prescriptionsData } = usePrescriptionsQuery();
-
+  const { user, loading: authLoading } = useAuth();
   const targetId = editingPrescriptionId || duplicatePrescriptionId;
   const isEditing = !!editingPrescriptionId;
+  const { data: exercisesData, error: exercisesError } = useExercisesQuery();
+  const {
+    data: prescription,
+    isLoading: isPrescriptionLoading,
+    error: prescriptionError,
+  } = usePrescriptionQuery(targetId);
+  const {
+    data: prescriptionExercises,
+    isLoading: isPrescriptionExercisesLoading,
+    error: prescriptionExercisesError,
+  } = usePrescriptionExercisesQuery(targetId);
 
   const [cart, setCart] = useState<{
     exercise_id: string;
@@ -91,36 +106,31 @@ export default function PrescriptionFormView({
 
   const createPrescriptionMutation = useCreatePrescriptionMutation();
   const updatePrescriptionMutation = useUpdatePrescriptionMutation();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (targetId && prescriptionsData?.data) {
-      const match = prescriptionsData.data.find((p) => p.id === targetId);
-      if (match) {
-        setTitle(isEditing ? match.titulo : `${match.titulo} (Cópia)`);
-        setDateInicio(match.data_inicio);
-        setDateFim(match.data_fim || '');
-        setDiasSemana(match.dias_semana || []);
+    if (!prescription) return;
 
-        import('../../services/prescriptionService').then(({ prescriptionService }) => {
-          prescriptionService.getExercisesByPrescriptionId(targetId).then((peList) => {
-            if (peList && peList.length > 0) {
-              const formattedCart = peList.map((pe) => ({
-                exercise_id: pe.exercise_id,
-                series: pe.series,
-                repeticoes: String(pe.repeticoes),
-                tempo_descanso: pe.tempo_descanso,
-                local_execucao: pe.local_execucao as 'estúdio' | 'casa',
-                dias_semana: pe.dias_semana || [],
-                observacoes: '',
-                ordem: pe.ordem,
-              }));
-              setCart(formattedCart);
-            }
-          });
-        });
-      }
-    }
-  }, [targetId, prescriptionsData, isEditing]);
+    setTitle(isEditing ? prescription.titulo : `${prescription.titulo} (Cópia)`);
+    setDateInicio(prescription.data_inicio);
+    setDateFim(prescription.data_fim || '');
+    setDiasSemana(prescription.dias_semana || []);
+  }, [prescription, isEditing]);
+
+  useEffect(() => {
+    if (!prescriptionExercises) return;
+
+    setCart(prescriptionExercises.map((pe) => ({
+      exercise_id: pe.exercise_id,
+      series: pe.series,
+      repeticoes: String(pe.repeticoes),
+      tempo_descanso: pe.tempo_descanso,
+      local_execucao: pe.local_execucao as 'estúdio' | 'casa',
+      dias_semana: pe.dias_semana || [],
+      observacoes: '',
+      ordem: pe.ordem,
+    })));
+  }, [prescriptionExercises]);
 
   const handleOpenConfig = (ex: Exercise) => {
     setSelectedEx(ex);
@@ -193,11 +203,25 @@ export default function PrescriptionFormView({
     setCart(copy);
   };
 
-  const handleSavePrescription = async () => {
-    if (!activePatientId || cart.length === 0) return;
+  const handleSavePrescription = () => {
+    setSaveError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (authLoading) {
+      setSaveError('A autenticação ainda está carregando. Tente novamente em instantes.');
+      return;
+    }
+    if (!activePatientId) {
+      setSaveError('Nenhum paciente ativo foi selecionado.');
+      return;
+    }
+    if (cart.length === 0) {
+      setSaveError('Adicione pelo menos um exercício antes de salvar.');
+      return;
+    }
+    if (!user) {
+      setSaveError('Não foi possível identificar a usuária autenticada. Faça login novamente.');
+      return;
+    }
 
     const exercisesToSave = cart.map((item, index) => ({
       exercise_id: item.exercise_id,
@@ -226,6 +250,9 @@ export default function PrescriptionFormView({
             triggerToast(`Prescrição "${title}" atualizada!`, activePatientId, 'success');
             onBack();
           },
+          onError: (error) => {
+            setSaveError(getErrorMessage(error, 'Não foi possível atualizar a prescrição.'));
+          },
         }
       );
     } else {
@@ -248,6 +275,9 @@ export default function PrescriptionFormView({
             triggerToast(`Prescrição "${title}" criada com sucesso!`, activePatientId, 'success');
             onBack();
           },
+          onError: (error) => {
+            setSaveError(getErrorMessage(error, 'Não foi possível criar a prescrição.'));
+          },
         }
       );
     }
@@ -269,6 +299,14 @@ export default function PrescriptionFormView({
 
   const allApparatus = Array.from(new Set(activeExercises.flatMap((e) => e.tags_aparelho)));
   const allPathologies = Array.from(new Set(activeExercises.flatMap((e) => e.tags_patologia)));
+  const isTargetLoading = !!targetId && (isPrescriptionLoading || isPrescriptionExercisesLoading);
+  const loadError = prescriptionError
+    ? getErrorMessage(prescriptionError, 'Não foi possível carregar a prescrição.')
+    : prescriptionExercisesError
+      ? getErrorMessage(prescriptionExercisesError, 'Não foi possível carregar os exercícios da prescrição.')
+      : exercisesError
+        ? getErrorMessage(exercisesError, 'Não foi possível carregar o catálogo de exercícios.')
+        : null;
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -302,7 +340,7 @@ export default function PrescriptionFormView({
             id="btn-salvar-prescricao"
             data-testid="btn-salvar-prescricao"
             onClick={handleSavePrescription}
-            disabled={cart.length === 0 || createPrescriptionMutation.isPending || updatePrescriptionMutation.isPending}
+            disabled={cart.length === 0 || authLoading || isTargetLoading || (!!targetId && !prescription) || createPrescriptionMutation.isPending || updatePrescriptionMutation.isPending}
             className="bg-[#0a5c4e] text-white hover:bg-[#07473c] dark:bg-[#52bfa6] dark:text-neutral-950 disabled:opacity-45 px-6 py-3 rounded-2xl text-xs font-black flex items-center gap-2 cursor-pointer shadow-md transition-all"
           >
             {createPrescriptionMutation.isPending || updatePrescriptionMutation.isPending ? (
@@ -314,6 +352,31 @@ export default function PrescriptionFormView({
           </button>
         </div>
       </div>
+
+      {isTargetLoading && (
+        <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-bold text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando os dados da prescrição...
+        </div>
+      )}
+      {loadError && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Erro ao carregar: {loadError}</span>
+        </div>
+      )}
+      {saveError && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{saveError}</span>
+        </div>
+      )}
+      {targetId && !isTargetLoading && !loadError && !prescription && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Prescrição não encontrada para o ID informado.</span>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-neutral-900 p-5 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -513,7 +576,8 @@ export default function PrescriptionFormView({
             <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 mt-6">
               <button
                 onClick={handleSavePrescription}
-                className="w-full bg-[#0a5c4e] text-white py-3.5 rounded-2xl text-xs font-black cursor-pointer shadow-md active:scale-95 transition-all"
+                disabled={authLoading || isTargetLoading || (!!targetId && !prescription) || createPrescriptionMutation.isPending || updatePrescriptionMutation.isPending}
+                className="w-full bg-[#0a5c4e] text-white py-3.5 rounded-2xl text-xs font-black cursor-pointer shadow-md active:scale-95 transition-all disabled:opacity-45"
               >
                 Confirmar e Salvar Plano
               </button>

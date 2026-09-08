@@ -29,8 +29,8 @@ export const prescriptionService = {
       .select('*')
       .eq('id', id)
       .maybeSingle();
-    if (error) return undefined;
-    return data as Prescription;
+    if (error) throw error;
+    return data as Prescription | undefined;
   },
 
   getExercisesByPrescriptionId: async (prescriptionId: string): Promise<PrescriptionExercise[]> => {
@@ -82,22 +82,27 @@ export const prescriptionService = {
     if (pError) throw pError;
 
     if (exercises) {
-      const { error: dError } = await supabase
-        .from('prescription_exercises')
-        .delete()
-        .eq('prescription_id', id);
-      if (dError) throw dError;
-
+      const existingExercises = await prescriptionService.getExercisesByPrescriptionId(id);
       const exercisesToInsert = exercises.map((ex, index) => ({
         ...ex,
         prescription_id: id,
         ordem: ex.ordem || index + 1,
       }));
 
-      const { error: iError } = await supabase
-        .from('prescription_exercises')
-        .insert(exercisesToInsert);
-      if (iError) throw iError;
+      if (exercisesToInsert.length > 0) {
+        const { error: iError } = await supabase
+          .from('prescription_exercises')
+          .insert(exercisesToInsert);
+        if (iError) throw iError;
+      }
+
+      if (existingExercises.length > 0) {
+        const { error: dError } = await supabase
+          .from('prescription_exercises')
+          .delete()
+          .in('id', existingExercises.map((exercise) => exercise.id));
+        if (dError) throw dError;
+      }
     }
 
     return updatedPrescription as Prescription;
