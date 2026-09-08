@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Remix: LF Studio",
+  "description": "Professional, Restorative, and Tech-Forward Rehabilitation and Recovery System",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
