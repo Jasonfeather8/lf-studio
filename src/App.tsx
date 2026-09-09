@@ -17,6 +17,7 @@ import Evolucao from './pages/Evolucao';
 import Settings from './pages/Settings';
 import AdminProfessionals from './pages/AdminProfessionals';
 import AdminGlobalExercises from './pages/AdminGlobalExercises';
+import AdminEmailTest from './pages/AdminEmailTest';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,6 +99,11 @@ function AppContent() {
         <Route path="/admin/exercises" element={
           <ProtectedRoute allowedRoles={['super_admin']}>
             <AdminGlobalExercises />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/email-test" element={
+          <ProtectedRoute allowedRoles={['super_admin']}>
+            <AdminEmailTest />
           </ProtectedRoute>
         } />
         

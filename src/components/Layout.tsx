@@ -21,7 +21,8 @@ import {
   ChevronLeft,
   Smartphone,
   ShieldCheck,
-  Globe
+  Globe,
+  Mail
  } from 'lucide-react';
 
 interface LayoutProps {
@@ -197,6 +198,7 @@ export default function Layout({ children }: LayoutProps) {
       items: [
         { id: 'admin', label: 'Profissionais', icon: ShieldCheck, route: 'admin' as const },
         { id: 'admin/exercises', label: 'Bibl. Global', icon: Globe, route: 'admin/exercises' as const },
+        { id: 'admin/email-test', label: 'Tesde de emails', icon: Mail, route: 'admin/email-test' as const },
       ]
     },
     {
