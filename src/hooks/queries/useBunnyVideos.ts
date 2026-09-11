@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { bunnyVideoService } from '../../services/bunnyVideoService';
@@ -10,6 +10,7 @@ export const BUNNY_VIDEO_KEYS = {
 
 export function useExerciseVideoQuery(exerciseId?: string | null) {
   const queryClient = useQueryClient();
+  const channelId = useId();
   const queryKey = exerciseId ? BUNNY_VIDEO_KEYS.byExercise(exerciseId) : ['exercise_videos', 'none'];
 
   const query = useQuery<BunnyVideo | null>({
@@ -26,7 +27,7 @@ export function useExerciseVideoQuery(exerciseId?: string | null) {
     if (!exerciseId) return;
 
     const channel = supabase
-      .channel(`exercise-video-${exerciseId}`)
+      .channel(`exercise-video-${exerciseId}-${channelId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'exercise_videos', filter: `exercise_id=eq.${exerciseId}` },
@@ -35,7 +36,7 @@ export function useExerciseVideoQuery(exerciseId?: string | null) {
       .subscribe();
 
     return () => { void supabase.removeChannel(channel); };
-  }, [exerciseId, queryClient]);
+  }, [channelId, exerciseId, queryClient]);
 
   return query;
 }
