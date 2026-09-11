@@ -38,6 +38,26 @@ export interface Exercise {
   status: 'ativo' | 'inativo'; // Soft Delete
 }
 
+export type BunnyVideoStatusLabel = 'Enviando' | 'Processando' | 'Concluído' | 'Erro' | 'Indisponível';
+
+export interface BunnyVideo {
+  id: string;
+  exercise_id: string;
+  bunny_video_id: string;
+  bunny_library_id: string;
+  bunny_status: number;
+  bunny_status_label: BunnyVideoStatusLabel;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BunnyUploadAuthorization {
+  videoId: string;
+  libraryId: string;
+  authorizationSignature: string;
+  authorizationExpire: number;
+}
+
 export interface Prescription {
   id: string; // UUID
   patient_id: string; // FK to Patient

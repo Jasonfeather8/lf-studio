@@ -9,10 +9,12 @@ import {
   useMarkCompletedMutation,
   useDashboardPatientExercisesQuery,
   usePatientsQuery,
+  useExerciseVideoQuery,
 } from '../../hooks';
 import { Play, Calendar, ClipboardList, Loader2, Dumbbell, Heart, Video, ChevronLeft, Check } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getVideoInfo } from '../../utils/video';
+import { getBunnyEmbedUrl } from '../../services/bunnyVideoService';
 
 /**
  * COMPONENTE PRINCIPAL DA ROTINA
@@ -173,10 +175,14 @@ function PatientRotinaView() {
  * COMPONENTE INTERNO: PLAYER DE VÍDEO E GUIA
  */
 function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise: any, isOpen: boolean, onClose: () => void, onFinish: () => void }) {
+  const bunnyVideoQuery = useExerciseVideoQuery(exercise?.exercise_id);
   if (!exercise) return null;
 
   const video = getVideoInfo(exercise.midia_url);
+  const bunnyEmbedUrl = bunnyVideoQuery.data ? getBunnyEmbedUrl(bunnyVideoQuery.data) : null;
   const isEmbedVideo = video && (video.provider === 'youtube' || video.provider === 'vimeo');
+  const bunnyStatus = bunnyVideoQuery.data?.bunny_status;
+  const bunnyStatusLabel = bunnyStatus === 3 ? 'Concluído' : [5, 8].includes(bunnyStatus || -1) ? 'Erro' : [0, 1, 2, 6, 7].includes(bunnyStatus || -1) ? 'Processando' : 'Indisponível';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={exercise.nome}>
@@ -202,7 +208,15 @@ function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise
 
         {/* Player de Vídeo */}
         <div className="aspect-video w-full rounded-[24px] overflow-hidden bg-black relative shadow-lg border border-neutral-100 dark:border-neutral-800">
-          {isEmbedVideo ? (
+          {bunnyEmbedUrl ? (
+            <iframe
+              src={bunnyEmbedUrl}
+              className="w-full h-full"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              title={exercise.nome}
+            />
+          ) : isEmbedVideo ? (
             <iframe
               src={video!.embedUrl}
               className="w-full h-full"
@@ -210,6 +224,12 @@ function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise
               allowFullScreen
               title={exercise.nome}
             />
+          ) : bunnyVideoQuery.data ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-900 px-6 text-center text-white">
+              <Video className="h-8 w-8 text-teal-300" />
+              <p className="text-xs font-black uppercase tracking-widest">Vídeo: {bunnyStatusLabel}</p>
+              <p className="text-[11px] font-semibold text-neutral-300">A reprodução ficará disponível após o processamento.</p>
+            </div>
           ) : (
             <div className="relative w-full h-full">
               <img src={exercise.midia_url || "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=600"} className="w-full h-full object-cover" alt="" />

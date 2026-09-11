@@ -6,6 +6,7 @@ import ExerciseCard from '../components/exercises/ExerciseCard';
 import { Search, Plus, Save, ChevronLeft, ChevronRight, Dumbbell, ShieldCheck, Youtube, Video, Link as LinkIcon } from 'lucide-react';
 import Modal from '../components/Modal';
 import { getVideoInfo } from '../utils/video';
+import DeviceVideoUpload from '../components/exercises/DeviceVideoUpload';
 
 export default function AdminGlobalExercises() {
   const { openDeleteModal } = useUIStore();
@@ -24,6 +25,7 @@ export default function AdminGlobalExercises() {
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [deviceFile, setDeviceFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -41,6 +43,7 @@ export default function AdminGlobalExercises() {
   const handleOpenCreate = () => {
     setIsEditing(false);
     setSelectedExerciseId(null);
+    setDeviceFile(null);
     setFormData({
       nome: '',
       descricao: '',
@@ -56,6 +59,7 @@ export default function AdminGlobalExercises() {
     e.stopPropagation();
     setIsEditing(true);
     setSelectedExerciseId(ex.id);
+    setDeviceFile(null);
     setFormData({
       nome: ex.nome,
       descricao: ex.descricao,
@@ -70,9 +74,9 @@ export default function AdminGlobalExercises() {
   const handleSaveExercise = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isEditing && selectedExerciseId) {
-      updateExerciseMutation.mutate({ id: selectedExerciseId, updates: formData }, { onSuccess: () => setExerciseModalOpen(false) });
+      updateExerciseMutation.mutate({ id: selectedExerciseId, updates: formData }, { onSuccess: () => { if (!deviceFile) setExerciseModalOpen(false); } });
     } else {
-      createExerciseMutation.mutate({ ...formData, status: 'ativo', physio_id: null }, { onSuccess: () => setExerciseModalOpen(false) });
+      createExerciseMutation.mutate({ ...formData, status: 'ativo', physio_id: null }, { onSuccess: (exercise) => { setSelectedExerciseId(exercise.id); if (!deviceFile) setExerciseModalOpen(false); } });
     }
   };
 
@@ -184,7 +188,7 @@ export default function AdminGlobalExercises() {
                   <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
                     type="url"
-                    required
+                    required={!deviceFile}
                     placeholder="YouTube ou Vimeo URL"
                     value={formData.midia_url}
                     onChange={(e) => setFormData({ ...formData, midia_url: e.target.value })}
@@ -192,6 +196,12 @@ export default function AdminGlobalExercises() {
                   />
                 </div>
               </div>
+              <DeviceVideoUpload
+                exerciseId={selectedExerciseId}
+                title={formData.nome}
+                file={deviceFile}
+                onFileChange={setDeviceFile}
+              />
             </div>
             <div>
               <span className="text-[10px] font-black text-neutral-400 uppercase block mb-2">Prévia</span>

@@ -5,4 +5,5 @@ export * from './queries/usePrescriptions';
 export * from './queries/useExams';
 export * from './queries/useAdherence';
 export * from './queries/useDashboard';
+export * from './queries/useBunnyVideos';
 export * from './keys';

@@ -7,6 +7,7 @@ import ExerciseCard from '../components/exercises/ExerciseCard';
 import { Search, Plus, Save, ChevronLeft, ChevronRight, Dumbbell, Filter, Youtube, Link as LinkIcon, Video } from 'lucide-react';
 import Modal from '../components/Modal';
 import { getVideoInfo } from '../utils/video';
+import DeviceVideoUpload from '../components/exercises/DeviceVideoUpload';
 
 export default function Exercises() {
   const { openDeleteModal } = useUIStore();
@@ -17,6 +18,7 @@ export default function Exercises() {
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [deviceFile, setDeviceFile] = useState<File | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<'mine' | 'global'>('mine');
 
@@ -52,6 +54,7 @@ export default function Exercises() {
   const handleOpenCreate = () => {
     setIsEditing(false);
     setSelectedExerciseId(null);
+    setDeviceFile(null);
     setFormData({
       nome: '',
       descricao: '',
@@ -67,6 +70,7 @@ export default function Exercises() {
     e.stopPropagation();
     setIsEditing(true);
     setSelectedExerciseId(ex.id);
+    setDeviceFile(null);
     setFormData({
       nome: ex.nome,
       descricao: ex.descricao,
@@ -83,12 +87,12 @@ export default function Exercises() {
     if (isEditing && selectedExerciseId) {
       updateExerciseMutation.mutate(
         { id: selectedExerciseId, updates: formData },
-        { onSuccess: () => setExerciseModalOpen(false) }
+        { onSuccess: () => { if (!deviceFile) setExerciseModalOpen(false); } }
       );
     } else {
       createExerciseMutation.mutate(
         { ...formData, status: 'ativo', physio_id: user?.id || null },
-        { onSuccess: () => setExerciseModalOpen(false) }
+        { onSuccess: (exercise) => { setSelectedExerciseId(exercise.id); if (!deviceFile) setExerciseModalOpen(false); } }
       );
     }
   };
@@ -207,7 +211,7 @@ export default function Exercises() {
                   <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
                     type="url"
-                    required
+                    required={!deviceFile}
                     placeholder="https://www.youtube.com/watch?v=..."
                     value={formData.midia_url}
                     onChange={(e) => setFormData({ ...formData, midia_url: e.target.value })}
@@ -220,6 +224,12 @@ export default function Exercises() {
                   Insira o link completo do vídeo. O sistema identificará automaticamente a capa e o player para o paciente.
                 </p>
               </div>
+              <DeviceVideoUpload
+                exerciseId={selectedExerciseId}
+                title={formData.nome}
+                file={deviceFile}
+                onFileChange={setDeviceFile}
+              />
             </div>
             <div>
               <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-2">Prévia Detectada</span>
