@@ -8,6 +8,7 @@ interface DeviceVideoUploadProps {
   title: string;
   file: File | null;
   onFileChange: (file: File | null) => void;
+  onUploadStarted?: () => void;
 }
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024;
@@ -26,7 +27,7 @@ const getStatusClasses = (status: number | undefined): string => {
   return 'text-teal-700 dark:text-teal-400';
 };
 
-export default function DeviceVideoUpload({ exerciseId, title, file, onFileChange }: DeviceVideoUploadProps) {
+export default function DeviceVideoUpload({ exerciseId, title, file, onFileChange, onUploadStarted }: DeviceVideoUploadProps) {
   const { data: video, error: videoError } = useExerciseVideoQuery(exerciseId);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -79,6 +80,7 @@ export default function DeviceVideoUpload({ exerciseId, title, file, onFileChang
           },
         });
         upload.start();
+        onUploadStarted?.();
       } catch (uploadError) {
         if (!cancelled) {
           setError(uploadError instanceof Error ? uploadError.message : 'Não foi possível iniciar o envio.');

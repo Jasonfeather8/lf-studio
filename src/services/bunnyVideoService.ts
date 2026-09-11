@@ -29,6 +29,11 @@ export const bunnyVideoService = {
   },
 };
 
+export const getBunnyThumbnailUrl = (video: BunnyVideo | null | undefined): string | null => {
+  if (!video?.bunny_library_id || !video.bunny_video_id) return null;
+  return `https://vz-${encodeURIComponent(video.bunny_library_id)}.b-cdn.net/${encodeURIComponent(video.bunny_video_id)}/thumbnail.jpg`;
+};
+
 export const getBunnyEmbedUrl = (video: BunnyVideo): string | null => {
   if (video.bunny_status !== 3 || !video.bunny_library_id || !video.bunny_video_id) return null;
   return `https://iframe.mediadelivery.net/embed/${encodeURIComponent(video.bunny_library_id)}/${encodeURIComponent(video.bunny_video_id)}`;

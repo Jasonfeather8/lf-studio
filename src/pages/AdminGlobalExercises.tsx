@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUIStore } from '../store/uiStore';
-import { useExercisesQuery, useCreateExerciseMutation, useUpdateExerciseMutation, useDeleteExerciseMutation } from '../hooks';
+import { useExercisesQuery, useCreateExerciseMutation, useUpdateExerciseMutation, useDeleteExerciseMutation, useExerciseVideoQuery } from '../hooks';
 import Button from '../components/ui/Button';
 import ExerciseCard from '../components/exercises/ExerciseCard';
+import BunnyThumbnail from '../components/exercises/BunnyThumbnail';
 import { Search, Plus, Save, ChevronLeft, ChevronRight, Dumbbell, ShieldCheck, Youtube, Video, Link as LinkIcon } from 'lucide-react';
 import Modal from '../components/Modal';
 import { getVideoInfo } from '../utils/video';
@@ -26,6 +27,8 @@ export default function AdminGlobalExercises() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [deviceFile, setDeviceFile] = useState<File | null>(null);
+  const [videoSource, setVideoSource] = useState<'device' | 'url'>('device');
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -39,11 +42,25 @@ export default function AdminGlobalExercises() {
   const createExerciseMutation = useCreateExerciseMutation();
   const updateExerciseMutation = useUpdateExerciseMutation();
   const deleteExerciseMutation = useDeleteExerciseMutation();
+  const { data: modalBunnyVideo } = useExerciseVideoQuery(selectedExerciseId);
+
+  useEffect(() => {
+    if (!deviceFile) {
+      setLocalPreviewUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(deviceFile);
+    setLocalPreviewUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [deviceFile]);
 
   const handleOpenCreate = () => {
     setIsEditing(false);
     setSelectedExerciseId(null);
     setDeviceFile(null);
+    setVideoSource('device');
     setFormData({
       nome: '',
       descricao: '',
@@ -60,6 +77,7 @@ export default function AdminGlobalExercises() {
     setIsEditing(true);
     setSelectedExerciseId(ex.id);
     setDeviceFile(null);
+    setVideoSource('device');
     setFormData({
       nome: ex.nome,
       descricao: ex.descricao,
@@ -71,8 +89,31 @@ export default function AdminGlobalExercises() {
     setExerciseModalOpen(true);
   };
 
+  const handleDeviceFileChange = (file: File | null) => {
+    setDeviceFile(file);
+    if (file) {
+      setFormData((current) => ({ ...current, midia_url: '' }));
+      setVideoSource('device');
+    }
+  };
+
+  const handleVideoSourceChange = (url: string) => {
+    setFormData((current) => ({ ...current, midia_url: url }));
+    if (url.trim()) setDeviceFile(null);
+    setVideoSource('url');
+  };
+
+  const closeExerciseModal = () => {
+    setExerciseModalOpen(false);
+    setDeviceFile(null);
+  };
+
   const handleSaveExercise = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!deviceFile && !formData.midia_url.trim()) {
+      setVideoSource('url');
+      return;
+    }
     if (isEditing && selectedExerciseId) {
       updateExerciseMutation.mutate({ id: selectedExerciseId, updates: formData }, { onSuccess: () => { if (!deviceFile) setExerciseModalOpen(false); } });
     } else {
@@ -178,47 +219,78 @@ export default function AdminGlobalExercises() {
         </div>
       </div>
 
-      <Modal isOpen={exerciseModalOpen} onClose={() => setExerciseModalOpen(false)} title={isEditing ? 'Editar Global' : 'Novo Global'} maxWidth="lg">
+      <Modal isOpen={exerciseModalOpen} onClose={closeExerciseModal} title={isEditing ? 'Editar Global' : 'Novo Global'} maxWidth="lg">
         <form onSubmit={handleSaveExercise} className="space-y-6 pt-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-2">Link do Vídeo</label>
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-teal-200 bg-teal-50/40 dark:border-teal-900/50 dark:bg-teal-950/20">
+              <button
+                type="button"
+                aria-expanded={videoSource === 'device'}
+                onClick={() => setVideoSource('device')}
+                className="flex w-full items-center justify-between p-4 text-left"
+              >
+                <span className="text-[10px] font-black uppercase tracking-wider text-teal-800 dark:text-teal-300">Vídeo do dispositivo</span>
+                <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400">{videoSource === 'device' ? 'Aberto' : 'Abrir'}</span>
+              </button>
+              <div hidden={videoSource !== 'device'} className="px-4 pb-4">
+                <DeviceVideoUpload
+                  exerciseId={selectedExerciseId}
+                  title={formData.nome}
+                  file={deviceFile}
+                  onFileChange={handleDeviceFileChange}
+                  onUploadStarted={closeExerciseModal}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800">
+              <button
+                type="button"
+                aria-expanded={videoSource === 'url'}
+                onClick={() => setVideoSource('url')}
+                className="flex w-full items-center justify-between p-4 text-left"
+              >
+                <span className="text-[10px] font-black uppercase tracking-wider text-neutral-500">YouTube ou Vimeo</span>
+                <span className="text-[10px] font-bold text-neutral-400">{videoSource === 'url' ? 'Aberto' : 'Abrir'}</span>
+              </button>
+              <div hidden={videoSource !== 'url'} className="px-4 pb-4">
                 <div className="relative">
                   <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
                     type="url"
-                    required={!deviceFile}
                     placeholder="YouTube ou Vimeo URL"
                     value={formData.midia_url}
-                    onChange={(e) => setFormData({ ...formData, midia_url: e.target.value })}
+                    onChange={(e) => handleVideoSourceChange(e.target.value)}
                     className="w-full bg-[#f4f7f6] dark:bg-neutral-950 border border-transparent rounded-2xl pl-11 pr-4 py-3.5 text-xs text-neutral-800 dark:text-white font-semibold outline-none focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
               </div>
-              <DeviceVideoUpload
-                exerciseId={selectedExerciseId}
-                title={formData.nome}
-                file={deviceFile}
-                onFileChange={setDeviceFile}
-              />
             </div>
-            <div>
-              <span className="text-[10px] font-black text-neutral-400 uppercase block mb-2">Prévia</span>
-              <div className="relative h-40 rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-100 group">
-                {formData.midia_url ? (
-                  <>
-                    <img src={videoInfo.thumbnail} className="w-full h-full object-cover opacity-60" alt="Preview" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                      <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
-                        {videoInfo.provider === 'youtube' ? <Youtube className="text-white w-6 h-6" /> : <Video className="text-white w-6 h-6" />}
-                      </div>
+          </div>
+
+          <div>
+            <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-2">Prévia do vídeo</span>
+            <div className="relative h-40 rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-100 dark:border-neutral-800">
+              {localPreviewUrl ? (
+                <video src={localPreviewUrl} controls muted playsInline title="Prévia do vídeo selecionado" className="w-full h-full object-contain" />
+              ) : videoSource === 'url' && formData.midia_url ? (
+                <>
+                  <img src={videoInfo.thumbnail} className="w-full h-full object-cover opacity-60" alt="Preview do vídeo" title="Preview do vídeo" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+                      {videoInfo.provider === 'youtube' ? <Youtube className="text-white w-6 h-6" /> : <Video className="text-white w-6 h-6" />}
                     </div>
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-neutral-500 text-[10px] font-bold">Sem link</div>
-                )}
-              </div>
+                    <span className="text-[9px] font-black text-white uppercase tracking-widest">{videoInfo.provider} detectado</span>
+                  </div>
+                </>
+              ) : modalBunnyVideo ? (
+                <BunnyThumbnail video={modalBunnyVideo} alt="Miniatura do vídeo Bunny" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-neutral-500 gap-2">
+                  <Video className="w-8 h-8 opacity-20" />
+                  <span className="text-[10px] font-bold">Aguardando vídeo...</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -233,7 +305,7 @@ export default function AdminGlobalExercises() {
           </div>
 
           <div className="flex justify-end gap-3 pt-6 border-t border-neutral-100 dark:border-neutral-800">
-            <Button type="button" variant="ghost" onClick={() => setExerciseModalOpen(false)}>Cancelar</Button>
+            <Button type="button" variant="ghost" onClick={closeExerciseModal}>Cancelar</Button>
             <Button type="submit" icon={<Save className="w-4 h-4" />}>Publicar Global</Button>
           </div>
         </form>
