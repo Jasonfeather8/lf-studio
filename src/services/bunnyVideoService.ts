@@ -1,6 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
 import { BunnyVideo, BunnyUploadAuthorization } from '@/types';
 
+const isValidHttpsUrl = (value: unknown): value is string => {
+  if (typeof value !== 'string' || !value.startsWith('https://')) return false;
+  try { return new URL(value).protocol === 'https:'; } catch { return false; }
+};
+
 export const bunnyVideoService = {
   getByExerciseId: async (exerciseId: string): Promise<BunnyVideo | null> => {
     const { data, error } = await supabase
@@ -12,7 +17,26 @@ export const bunnyVideoService = {
       .maybeSingle();
 
     if (error) throw error;
-    return data as BunnyVideo | null;
+    if (!data) return null;
+
+    const video = data as BunnyVideo;
+    if (video.bunny_status === 3 && !video.thumbnail_url) {
+      try {
+        const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-bunny-thumbnail', {
+          body: { exerciseId },
+        });
+        const syncedThumbnailUrl = syncData && typeof syncData === 'object' && !Array.isArray(syncData)
+          ? (syncData as { thumbnailUrl?: unknown }).thumbnailUrl
+          : undefined;
+        if (!syncError && isValidHttpsUrl(syncedThumbnailUrl)) {
+          return { ...video, thumbnail_url: syncedThumbnailUrl };
+        }
+      } catch {
+        return video;
+      }
+    }
+
+    return video;
   },
 
   createUploadAuthorization: async (exerciseId: string, title: string): Promise<BunnyUploadAuthorization> => {
@@ -30,6 +54,7 @@ export const bunnyVideoService = {
 };
 
 export const getBunnyThumbnailUrl = (video: BunnyVideo | null | undefined): string | null => {
+  if (isValidHttpsUrl(video?.thumbnail_url)) return video.thumbnail_url;
   if (!video?.bunny_library_id || !video.bunny_video_id) return null;
   return `https://vz-${encodeURIComponent(video.bunny_library_id)}.b-cdn.net/${encodeURIComponent(video.bunny_video_id)}/thumbnail.jpg`;
 };

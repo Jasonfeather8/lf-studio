@@ -33,6 +33,11 @@ const hmac = async (body: Uint8Array, key: string): Promise<Uint8Array> => {
 
 const getField = (payload: Record<string, unknown>, names: string[]) => names.map((name) => payload[name]).find((value) => value !== undefined);
 
+const isValidHttpsUrl = (value: unknown): value is string => {
+  if (typeof value !== "string" || !value.startsWith("https://")) return false;
+  try { return new URL(value).protocol === "https:"; } catch { return false; }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== "POST") return response({ error: "Method not allowed" }, 405);
@@ -48,6 +53,7 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const libraryId = Deno.env.get("BUNNY_STREAM_LIBRARY_ID") ?? "";
+    const bunnyApiKey = Deno.env.get("BUNNY_STREAM_API_KEY") ?? "";
     if (!readOnlyKey || !serviceRoleKey || !supabaseUrl || !libraryId) {
       console.error(`[${FUNCTION_NAME}] Missing server configuration`);
       return response({ error: "Webhook is not configured" }, 500);
@@ -70,10 +76,36 @@ serve(async (req) => {
     }
 
     const statusLabel = status === 3 ? "Concluído" : [5, 8].includes(status) ? "Erro" : [0, 1, 2, 6, 7].includes(status) ? "Processando" : "Indisponível";
+    let thumbnailUrl: string | undefined;
+    if (bunnyApiKey) {
+      try {
+        const bunnyResponse = await fetch(`https://video.bunnycdn.com/library/${encodeURIComponent(libraryId)}/videos/${encodeURIComponent(videoId)}`, {
+          headers: { AccessKey: bunnyApiKey },
+        });
+        if (!bunnyResponse.ok) {
+          console.error(`[${FUNCTION_NAME}] Bunny thumbnail metadata lookup failed`, { status: bunnyResponse.status });
+        } else {
+          const metadata: unknown = await bunnyResponse.json();
+          const candidate = typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)
+            ? (metadata as Record<string, unknown>).thumbnailUrl
+            : undefined;
+          if (isValidHttpsUrl(candidate)) thumbnailUrl = candidate;
+        }
+      } catch {
+        console.error(`[${FUNCTION_NAME}] Bunny thumbnail metadata lookup failed`);
+      }
+    }
+
     const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+    const updateData: Record<string, unknown> = {
+      bunny_status: status,
+      bunny_status_label: statusLabel,
+      updated_at: new Date().toISOString(),
+    };
+    if (thumbnailUrl) updateData.thumbnail_url = thumbnailUrl;
     const { data, error } = await serviceClient
       .from("exercise_videos")
-      .update({ bunny_status: status, bunny_status_label: statusLabel, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq("bunny_video_id", videoId)
       .eq("bunny_library_id", libraryId)
       .select("id")

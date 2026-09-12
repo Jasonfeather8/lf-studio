@@ -47,6 +47,7 @@ export interface BunnyVideo {
   bunny_library_id: string;
   bunny_status: number;
   bunny_status_label: BunnyVideoStatusLabel;
+  thumbnail_url?: string | null;
   created_at: string;
   updated_at: string;
 }
