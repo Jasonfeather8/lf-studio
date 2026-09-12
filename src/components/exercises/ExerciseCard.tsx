@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Clock3, Edit2, Loader2, Trash2, Video, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Clock3, Edit2, Loader2, Play, Trash2, Video, AlertCircle } from 'lucide-react';
 import { Exercise } from '../../types';
 import { getVideoInfo } from '../../utils/video';
 import { useExerciseVideoQuery } from '../../hooks';
@@ -9,6 +9,7 @@ interface Props {
   ex: Exercise;
   handleOpenEdit: (ex: Exercise, e: React.MouseEvent) => void;
   handleDeleteExercise: (id: string, nome: string, e: React.MouseEvent) => void;
+  handleOpenPlayer?: (ex: Exercise, e: React.MouseEvent) => void;
   key?: string;
   readonly?: boolean;
 }
@@ -21,7 +22,7 @@ const getStatusLabel = (status: number | undefined): string => {
   return 'Indisponível';
 };
 
-export default function ExerciseCard({ ex, handleOpenEdit, handleDeleteExercise, readonly = false }: Props) {
+export default function ExerciseCard({ ex, handleOpenEdit, handleDeleteExercise, handleOpenPlayer, readonly = false }: Props) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const { data: bunnyVideo } = useExerciseVideoQuery(ex.id);
@@ -125,24 +126,39 @@ export default function ExerciseCard({ ex, handleOpenEdit, handleDeleteExercise,
       )}
 
       {/* Actions bottom bar */}
-      {!readonly && (
+      {(!readonly || handleOpenPlayer) && (
         <div className="mt-5 pt-4 border-t border-neutral-100 dark:border-neutral-800/40 flex justify-end gap-1">
-          <button
-            type="button"
-            onClick={(e) => handleOpenEdit(ex, e)}
-            className="p-2 text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer"
-            title="Editar Exercício"
-          >
-            <Edit2 className="w-4 h-4 stroke-[2.2px]" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => handleDeleteExercise(ex.id, ex.nome, e)}
-            className="p-2 text-neutral-400 dark:text-neutral-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer"
-            title="Remover do Catálogo"
-          >
-            <Trash2 className="w-4 h-4 stroke-[2.2px]" />
-          </button>
+          {handleOpenPlayer && (
+            <button
+              type="button"
+              onClick={(e) => handleOpenPlayer(ex, e)}
+              className="p-2 text-neutral-400 dark:text-neutral-500 hover:text-[#0a5c4e] dark:hover:text-teal-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer"
+              title="Reproduzir vídeo"
+              aria-label={`Reproduzir vídeo do exercício ${ex.nome}`}
+            >
+              <Play className="w-4 h-4 fill-current stroke-[2.2px]" />
+            </button>
+          )}
+          {!readonly && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => handleOpenEdit(ex, e)}
+                className="p-2 text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer"
+                title="Editar Exercício"
+              >
+                <Edit2 className="w-4 h-4 stroke-[2.2px]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleDeleteExercise(ex.id, ex.nome, e)}
+                className="p-2 text-neutral-400 dark:text-neutral-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer"
+                title="Remover do Catálogo"
+              >
+                <Trash2 className="w-4 h-4 stroke-[2.2px]" />
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useUIStore } from '../store/uiStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { useExercisesQuery, useCreateExerciseMutation, useUpdateExerciseMutation, useDeleteExerciseMutation, useExerciseVideoQuery } from '../hooks';
 import Button from '../components/ui/Button';
 import ExerciseCard from '../components/exercises/ExerciseCard';
+import ExerciseVideoPlayerModal from '../components/exercises/ExerciseVideoPlayerModal';
 import BunnyThumbnail from '../components/exercises/BunnyThumbnail';
 import { Search, Plus, Save, ChevronLeft, ChevronRight, Dumbbell, ShieldCheck, Youtube, Video, Link as LinkIcon } from 'lucide-react';
 import Modal from '../components/Modal';
 import { getVideoInfo } from '../utils/video';
 import DeviceVideoUpload from '../components/exercises/DeviceVideoUpload';
+import { Exercise } from '../types';
 
 export default function AdminGlobalExercises() {
   const { openDeleteModal } = useUIStore();
+  const { role } = useAuth();
+  const canPlayExercise = role === 'admin' || role === 'super_admin';
   
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,6 +34,7 @@ export default function AdminGlobalExercises() {
   const [deviceFile, setDeviceFile] = useState<File | null>(null);
   const [videoSource, setVideoSource] = useState<'device' | 'url'>('device');
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+  const [playerExercise, setPlayerExercise] = useState<Exercise | null>(null);
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -126,6 +132,11 @@ export default function AdminGlobalExercises() {
     openDeleteModal('Excluir Global', `Remover "${name}" da Biblioteca LF?`, () => { deleteExerciseMutation.mutate(id); });
   };
 
+  const handleOpenPlayer = (ex: Exercise, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPlayerExercise(ex);
+  };
+
   const videoInfo = getVideoInfo(formData.midia_url);
 
   if (isLoading) {
@@ -170,7 +181,13 @@ export default function AdminGlobalExercises() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {exercises.map((ex) => (
-          <ExerciseCard key={ex.id} ex={ex} handleOpenEdit={handleOpenEdit} handleDeleteExercise={handleDeleteExercise} />
+          <ExerciseCard
+            key={ex.id}
+            ex={ex}
+            handleOpenEdit={handleOpenEdit}
+            handleDeleteExercise={handleDeleteExercise}
+            handleOpenPlayer={canPlayExercise ? handleOpenPlayer : undefined}
+          />
         ))}
         {exercises.length === 0 && (
           <div className="col-span-full py-20 text-center bg-white dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800">
@@ -310,6 +327,12 @@ export default function AdminGlobalExercises() {
           </div>
         </form>
       </Modal>
+
+      <ExerciseVideoPlayerModal
+        exercise={playerExercise}
+        isOpen={canPlayExercise && playerExercise !== null}
+        onClose={() => setPlayerExercise(null)}
+      />
     </div>
   );
 }

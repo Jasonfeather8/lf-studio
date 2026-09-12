@@ -4,15 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useExercisesQuery, useCreateExerciseMutation, useUpdateExerciseMutation, useDeleteExerciseMutation, useExerciseVideoQuery } from '../hooks';
 import Button from '../components/ui/Button';
 import ExerciseCard from '../components/exercises/ExerciseCard';
+import ExerciseVideoPlayerModal from '../components/exercises/ExerciseVideoPlayerModal';
 import BunnyThumbnail from '../components/exercises/BunnyThumbnail';
 import { Search, Plus, Save, ChevronLeft, ChevronRight, Dumbbell, Filter, Youtube, Link as LinkIcon, Video } from 'lucide-react';
 import Modal from '../components/Modal';
 import { getVideoInfo } from '../utils/video';
 import DeviceVideoUpload from '../components/exercises/DeviceVideoUpload';
+import { Exercise } from '../types';
 
 export default function Exercises() {
   const { openDeleteModal } = useUIStore();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const canPlayExercise = role === 'admin' || role === 'super_admin';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -24,6 +27,7 @@ export default function Exercises() {
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<'mine' | 'global'>('mine');
+  const [playerExercise, setPlayerExercise] = useState<Exercise | null>(null);
 
   const [selectedApparatus, setSelectedApparatus] = useState('');
   const [selectedPathology, setSelectedPathology] = useState('');
@@ -147,6 +151,11 @@ export default function Exercises() {
     );
   };
 
+  const handleOpenPlayer = (ex: Exercise, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPlayerExercise(ex);
+  };
+
   const videoInfo = getVideoInfo(formData.midia_url);
 
   if (isLoading) {
@@ -193,7 +202,14 @@ export default function Exercises() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {exercises.map((ex) => (
-          <ExerciseCard key={ex.id} ex={ex} handleOpenEdit={handleOpenEdit} handleDeleteExercise={handleDeleteExercise} readonly={activeTab === 'global'} />
+          <ExerciseCard
+            key={ex.id}
+            ex={ex}
+            handleOpenEdit={handleOpenEdit}
+            handleDeleteExercise={handleDeleteExercise}
+            handleOpenPlayer={canPlayExercise ? handleOpenPlayer : undefined}
+            readonly={activeTab === 'global'}
+          />
         ))}
         {exercises.length === 0 && (
           <div className="col-span-full py-20 text-center bg-white dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800">
@@ -348,6 +364,12 @@ export default function Exercises() {
           </div>
         </form>
       </Modal>
+
+      <ExerciseVideoPlayerModal
+        exercise={playerExercise}
+        isOpen={canPlayExercise && playerExercise !== null}
+        onClose={() => setPlayerExercise(null)}
+      />
     </div>
   );
 }
