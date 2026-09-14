@@ -56,8 +56,7 @@ export const bunnyVideoService = {
 const BUNNY_PULL_ZONE_HOSTNAME = 'vz-b364b372-b44.b-cdn.net';
 
 export const getBunnyThumbnailUrl = (video: BunnyVideo | null | undefined): string | null => {
-  if (isValidHttpsUrl(video?.thumbnail_url)) return video.thumbnail_url;
-  if (!video?.bunny_library_id || !video.bunny_video_id) return null;
+  if (!video?.bunny_video_id) return null;
   return `https://${BUNNY_PULL_ZONE_HOSTNAME}/${encodeURIComponent(video.bunny_video_id)}/thumbnail.jpg`;
 };
 

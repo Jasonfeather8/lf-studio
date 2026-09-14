@@ -11,14 +11,31 @@ interface BunnyThumbnailProps {
 
 type ThumbnailState = 'loading' | 'loaded' | 'unavailable';
 
+const MAX_THUMBNAIL_RETRIES = 3;
+const THUMBNAIL_RETRY_DELAY_MS = 3000;
+
 export default function BunnyThumbnail({ video, alt, className = '' }: BunnyThumbnailProps) {
   const thumbnailUrl = getBunnyThumbnailUrl(video);
+  const videoId = video?.bunny_video_id ?? null;
   const [state, setState] = useState<ThumbnailState>(thumbnailUrl ? 'loading' : 'unavailable');
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const isWaiting = !video || [0, 1, 2, 6, 7].includes(video.bunny_status);
 
   useEffect(() => {
     setState(thumbnailUrl ? 'loading' : 'unavailable');
-  }, [thumbnailUrl]);
+    setRetryAttempt(0);
+  }, [videoId, thumbnailUrl]);
+
+  useEffect(() => {
+    if (!thumbnailUrl || state !== 'unavailable' || retryAttempt >= MAX_THUMBNAIL_RETRIES) return;
+
+    const retryTimer = window.setTimeout(() => {
+      setRetryAttempt((attempt) => attempt + 1);
+      setState('loading');
+    }, THUMBNAIL_RETRY_DELAY_MS);
+
+    return () => window.clearTimeout(retryTimer);
+  }, [retryAttempt, state, thumbnailUrl]);
 
   if (!thumbnailUrl || state === 'unavailable') {
     return (
@@ -38,6 +55,7 @@ export default function BunnyThumbnail({ video, alt, className = '' }: BunnyThum
         </div>
       )}
       <img
+        key={`${thumbnailUrl}-${retryAttempt}`}
         src={thumbnailUrl}
         alt={alt}
         title={alt}
