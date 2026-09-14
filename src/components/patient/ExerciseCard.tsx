@@ -1,5 +1,7 @@
 import React from 'react';
 import { Play, Check, Target, Dumbbell, Heart } from 'lucide-react';
+import { useExerciseVideoQuery } from '../../hooks';
+import BunnyThumbnail from '../exercises/BunnyThumbnail';
 import { getVideoInfo } from '../../utils/video';
 
 interface ExerciseCardProps {
@@ -9,6 +11,7 @@ interface ExerciseCardProps {
 }
 
 export default function ExerciseCard({ exercise, isCompleted, onClick }: ExerciseCardProps) {
+  const { data: bunnyVideo } = useExerciseVideoQuery(exercise.exercise_id);
   const video = getVideoInfo(exercise.midia_url);
   const thumbUrl = video.thumbnail || "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=150&q=80";
 
@@ -21,12 +24,18 @@ export default function ExerciseCard({ exercise, isCompleted, onClick }: Exercis
           : 'hover:shadow-[0_8px_24px_-8px_rgba(13,148,136,0.15)] dark:hover:shadow-none dark:hover:bg-neutral-800'
       }`}
     >
-      <img
-        src={thumbUrl}
-        alt={exercise.nome}
-        className="w-20 h-20 rounded-2xl object-cover shadow-sm"
-        referrerPolicy="no-referrer"
-      />
+      {bunnyVideo ? (
+        <div className="relative w-20 h-20">
+          <BunnyThumbnail video={bunnyVideo} alt={exercise.nome} className="w-full h-full rounded-2xl object-cover shadow-sm" />
+        </div>
+      ) : (
+        <img
+          src={thumbUrl}
+          alt={exercise.nome}
+          className="w-20 h-20 rounded-2xl object-cover shadow-sm"
+          referrerPolicy="no-referrer"
+        />
+      )}
       <div className="flex-1 min-w-0 py-1">
         <div className="flex flex-wrap gap-1 mb-1.5">
           {exercise.aparelho && (
