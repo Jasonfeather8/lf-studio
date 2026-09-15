@@ -11,7 +11,7 @@ import {
   usePatientsQuery,
   useExerciseVideoQuery,
 } from '../../hooks';
-import { Play, Calendar, ClipboardList, Loader2, Dumbbell, Heart, Video, ChevronLeft, Check } from 'lucide-react';
+import { Calendar, ClipboardList, Loader2, Dumbbell, Heart, Video, AlertCircle, Clock3, ChevronLeft, Check } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getVideoInfo } from '../../utils/video';
 import { getBunnyEmbedUrl } from '../../services/bunnyVideoService';
@@ -183,6 +183,7 @@ function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise
   const isEmbedVideo = video && (video.provider === 'youtube' || video.provider === 'vimeo');
   const bunnyStatus = bunnyVideoQuery.data?.bunny_status;
   const bunnyStatusLabel = bunnyStatus === 3 ? 'Concluído' : [5, 8].includes(bunnyStatus || -1) ? 'Erro' : [0, 1, 2, 6, 7].includes(bunnyStatus || -1) ? 'Processando' : 'Indisponível';
+  const isBunnyProcessing = bunnyStatus !== undefined && [0, 1, 2, 6, 7].includes(bunnyStatus);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={exercise.nome}>
@@ -212,7 +213,7 @@ function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise
             <iframe
               src={bunnyEmbedUrl}
               className="w-full h-full"
-              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               title={exercise.nome}
             />
@@ -224,20 +225,35 @@ function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise
               allowFullScreen
               title={exercise.nome}
             />
-          ) : bunnyVideoQuery.data ? (
+          ) : bunnyVideoQuery.isLoading ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-900 px-6 text-center text-white">
-              <Video className="h-8 w-8 text-teal-300" />
-              <p className="text-xs font-black uppercase tracking-widest">Vídeo: {bunnyStatusLabel}</p>
-              <p className="text-[11px] font-semibold text-neutral-300">A reprodução ficará disponível após o processamento.</p>
+              <Loader2 className="h-8 w-8 animate-spin text-teal-300" />
+              <p className="text-xs font-black uppercase tracking-widest">Carregando vídeo</p>
+              <p className="text-[11px] text-neutral-400">Buscando o vídeo deste exercício.</p>
+            </div>
+          ) : bunnyVideoQuery.isError ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-900 px-6 text-center text-white">
+              <AlertCircle className="h-8 w-8 text-amber-300" />
+              <p className="text-xs font-black uppercase tracking-widest">Erro ao carregar o vídeo</p>
+              <p className="text-[11px] text-neutral-400">Não foi possível consultar o vídeo deste exercício.</p>
+            </div>
+          ) : bunnyVideoQuery.data && bunnyStatus !== 3 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-900 px-6 text-center text-white">
+              {isBunnyProcessing ? (
+                <Clock3 className="h-8 w-8 text-teal-300" />
+              ) : (
+                <Video className="h-8 w-8 text-amber-300" />
+              )}
+              <p className="text-xs font-black uppercase tracking-widest">Vídeo Bunny: {bunnyStatusLabel}</p>
+              <p className="text-[11px] text-neutral-400">
+                {isBunnyProcessing ? 'O vídeo ficará disponível quando o processamento for concluído.' : 'O vídeo Bunny não está disponível para reprodução.'}
+              </p>
             </div>
           ) : (
-            <div className="relative w-full h-full">
-              <img src={exercise.midia_url || "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=600"} className="w-full h-full object-cover" alt="" />
-              <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl">
-                  <Play className="w-8 h-8 text-white fill-current translate-x-1" />
-                </div>
-              </div>
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-900 px-6 text-center text-white">
+              <Video className="h-8 w-8 text-neutral-500" />
+              <p className="text-xs font-black uppercase tracking-widest">Vídeo indisponível</p>
+              <p className="text-[11px] text-neutral-400">Este exercício não possui um vídeo reproduzível.</p>
             </div>
           )}
         </div>
