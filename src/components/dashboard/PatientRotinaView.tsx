@@ -14,7 +14,7 @@ import {
 import { Calendar, ClipboardList, Loader2, Dumbbell, Heart, Video, AlertCircle, Clock3, ChevronLeft, Check } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { getVideoInfo } from '../../utils/video';
-import { getBunnyEmbedUrl } from '../../services/bunnyVideoService';
+import { bunnyVideoService } from '../../services/bunnyVideoService';
 
 /**
  * COMPONENTE PRINCIPAL DA ROTINA
@@ -176,12 +176,45 @@ function PatientRotinaView() {
  */
 function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise: any, isOpen: boolean, onClose: () => void, onFinish: () => void }) {
   const bunnyVideoQuery = useExerciseVideoQuery(exercise?.exercise_id);
+  const [bunnyPlaybackUrl, setBunnyPlaybackUrl] = useState<string | null>(null);
+  const [isBunnyPlaybackLoading, setIsBunnyPlaybackLoading] = useState(false);
+  const [bunnyPlaybackError, setBunnyPlaybackError] = useState(false);
+
+  useEffect(() => {
+    const exerciseId = exercise?.exercise_id;
+    const bunnyVideo = bunnyVideoQuery.data?.exercise_id === exerciseId ? bunnyVideoQuery.data : null;
+    if (!exerciseId || bunnyVideo?.bunny_status !== 3) {
+      setBunnyPlaybackUrl(null);
+      setIsBunnyPlaybackLoading(false);
+      setBunnyPlaybackError(false);
+      return;
+    }
+
+    let cancelled = false;
+    setBunnyPlaybackUrl(null);
+    setBunnyPlaybackError(false);
+    setIsBunnyPlaybackLoading(true);
+    bunnyVideoService.getBunnyPlaybackUrl(exerciseId)
+      .then((playbackUrl) => {
+        if (cancelled) return;
+        setBunnyPlaybackUrl(playbackUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setBunnyPlaybackError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsBunnyPlaybackLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [exercise?.exercise_id, bunnyVideoQuery.data?.exercise_id, bunnyVideoQuery.data?.bunny_status]);
+
   if (!exercise) return null;
 
   const video = getVideoInfo(exercise.midia_url);
-  const bunnyEmbedUrl = bunnyVideoQuery.data ? getBunnyEmbedUrl(bunnyVideoQuery.data) : null;
+  const bunnyVideo = bunnyVideoQuery.data?.exercise_id === exercise.exercise_id ? bunnyVideoQuery.data : null;
   const isEmbedVideo = video && (video.provider === 'youtube' || video.provider === 'vimeo');
-  const bunnyStatus = bunnyVideoQuery.data?.bunny_status;
+  const bunnyStatus = bunnyVideo?.bunny_status;
   const bunnyStatusLabel = bunnyStatus === 3 ? 'Concluído' : [5, 8].includes(bunnyStatus || -1) ? 'Erro' : [0, 1, 2, 6, 7].includes(bunnyStatus || -1) ? 'Processando' : 'Indisponível';
   const isBunnyProcessing = bunnyStatus !== undefined && [0, 1, 2, 6, 7].includes(bunnyStatus);
 
@@ -209,14 +242,26 @@ function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise
 
         {/* Player de Vídeo */}
         <div className="aspect-video w-full rounded-[24px] overflow-hidden bg-black relative shadow-lg border border-neutral-100 dark:border-neutral-800">
-          {bunnyEmbedUrl ? (
+          {bunnyPlaybackUrl ? (
             <iframe
-              src={bunnyEmbedUrl}
+              src={bunnyPlaybackUrl}
               className="w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               title={exercise.nome}
             />
+          ) : bunnyStatus === 3 && bunnyPlaybackError ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-900 px-6 text-center text-white">
+              <AlertCircle className="h-8 w-8 text-amber-300" />
+              <p className="text-xs font-black uppercase tracking-widest">Erro ao carregar o vídeo</p>
+              <p className="text-[11px] text-neutral-400">Não foi possível consultar o vídeo deste exercício.</p>
+            </div>
+          ) : bunnyStatus === 3 && (isBunnyPlaybackLoading || !bunnyPlaybackUrl) ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-900 px-6 text-center text-white">
+              <Loader2 className="h-8 w-8 animate-spin text-teal-300" />
+              <p className="text-xs font-black uppercase tracking-widest">Carregando vídeo</p>
+              <p className="text-[11px] text-neutral-400">Preparando o vídeo deste exercício.</p>
+            </div>
           ) : isEmbedVideo ? (
             <iframe
               src={video!.embedUrl}
@@ -237,7 +282,7 @@ function ExercisePlayerModal({ exercise, isOpen, onClose, onFinish }: { exercise
               <p className="text-xs font-black uppercase tracking-widest">Erro ao carregar o vídeo</p>
               <p className="text-[11px] text-neutral-400">Não foi possível consultar o vídeo deste exercício.</p>
             </div>
-          ) : bunnyVideoQuery.data && bunnyStatus !== 3 ? (
+          ) : bunnyVideo && bunnyStatus !== 3 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 bg-neutral-900 px-6 text-center text-white">
               {isBunnyProcessing ? (
                 <Clock3 className="h-8 w-8 text-teal-300" />

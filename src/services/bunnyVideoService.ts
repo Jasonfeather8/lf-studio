@@ -39,6 +39,19 @@ export const bunnyVideoService = {
     return video;
   },
 
+  getBunnyPlaybackUrl: async (exerciseId: string): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('get-bunny-playback-url', {
+      body: { exerciseId },
+    });
+    if (error) throw error;
+
+    const playbackUrl = data && typeof data === 'object' && !Array.isArray(data)
+      ? (data as { playbackUrl?: unknown }).playbackUrl
+      : undefined;
+    if (!isValidHttpsUrl(playbackUrl)) throw new Error('URL de reprodução inválida.');
+    return playbackUrl;
+  },
+
   createUploadAuthorization: async (exerciseId: string, title: string): Promise<BunnyUploadAuthorization> => {
     const cleanTitle = title.trim();
     if (!exerciseId || !cleanTitle || cleanTitle.length > 200 || /[\u0000-\u001f\u007f]/.test(cleanTitle)) {
