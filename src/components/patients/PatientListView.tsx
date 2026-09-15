@@ -176,7 +176,7 @@ export default function PatientListView({ triggerToast }: { triggerToast: (messa
     if (p.status !== activeTab) return false;
     const prof = profiles?.find((prof) => prof.id === p.profile_id);
     const term = searchPatientQuery.toLowerCase();
-    return prof?.nome_completo.toLowerCase().includes(term) || prof?.documento_cpf.includes(term);
+    return prof?.nome_completo.toLowerCase().includes(term) || prof?.documento_cpf?.includes(term);
   });
 
   const totalPatientsCount = patientsData?.total || 0;
