@@ -185,9 +185,9 @@ export default function PatientListView({ triggerToast }: { triggerToast: (messa
   const totalPages = Math.max(1, Math.ceil(totalPatientsCount / itemsPerPage));
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-neutral-900 p-4 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-xs">
-        <div className="relative flex-1">
+    <div className="min-w-0 w-full space-y-8 animate-fadeIn">
+      <div className="min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-neutral-900 p-4 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-xs">
+        <div className="relative flex-1 min-w-0 w-full">
           <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input
             type="text"
@@ -197,15 +197,15 @@ export default function PatientListView({ triggerToast }: { triggerToast: (messa
             className="w-full bg-slate-50 dark:bg-neutral-800 border-none rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-neutral-800 dark:text-white outline-none focus:ring-1 focus:ring-[#0a5c4e]"
           />
         </div>
-        <Button id="add-patient-btn" onClick={handleOpenNewPatientModal} icon={<Plus strokeWidth={3} />} className="rounded-full">
+        <Button id="add-patient-btn" onClick={handleOpenNewPatientModal} icon={<Plus strokeWidth={3} />} className="w-full md:w-auto shrink-0 rounded-full">
           Novo Paciente
         </Button>
       </div>
 
-      <div className="flex gap-1 bg-slate-100 dark:bg-neutral-900 p-1 rounded-2xl w-fit border border-neutral-200 dark:border-neutral-800">
+      <div className="min-w-0 max-w-full overflow-x-auto flex gap-1 bg-slate-100 dark:bg-neutral-900 p-1 rounded-2xl w-full sm:w-fit border border-neutral-200 dark:border-neutral-800">
         <button
           onClick={() => { setActiveTab('ativo'); setPage(1); }}
-          className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-6 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'ativo'
               ? 'bg-white dark:bg-neutral-800 text-[#0a5c4e] dark:text-teal-400 shadow-sm'
               : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
@@ -215,7 +215,7 @@ export default function PatientListView({ triggerToast }: { triggerToast: (messa
         </button>
         <button
           onClick={() => { setActiveTab('inativo'); setPage(1); }}
-          className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-6 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'inativo'
               ? 'bg-white dark:bg-neutral-800 text-[#0a5c4e] dark:text-teal-400 shadow-sm'
               : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
@@ -225,8 +225,8 @@ export default function PatientListView({ triggerToast }: { triggerToast: (messa
         </button>
       </div>
 
-      <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-sm overflow-hidden">
-        <table className="w-full text-left">
+      <div className="min-w-0 max-w-full bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-sm overflow-hidden overflow-x-auto">
+        <table className="w-full min-w-[700px] text-left">
           <thead>
             <tr className="bg-neutral-50 dark:bg-neutral-850 text-[10px] font-black uppercase text-neutral-400 tracking-widest border-b border-neutral-100 dark:border-neutral-800">
               <th className="px-6 py-4">Paciente</th>
