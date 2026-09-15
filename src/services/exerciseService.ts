@@ -95,6 +95,10 @@ export const exerciseService = {
   },
 
   delete: async (id: string): Promise<Exercise> => {
+    const { error } = await supabase.functions.invoke('delete-bunny-video', {
+      body: { exerciseId: id },
+    });
+    if (error) throw error;
     return exerciseService.update(id, { status: 'inativo' });
   }
 };
