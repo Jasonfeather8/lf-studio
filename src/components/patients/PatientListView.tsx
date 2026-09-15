@@ -185,7 +185,7 @@ export default function PatientListView({ triggerToast }: { triggerToast: (messa
   const totalPages = Math.max(1, Math.ceil(totalPatientsCount / itemsPerPage));
 
   return (
-    <div className="min-w-0 w-full space-y-8 animate-fadeIn">
+    <div className="min-w-0 w-full max-w-full overflow-x-hidden space-y-8 animate-fadeIn">
       <div className="min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-neutral-900 p-4 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-xs">
         <div className="relative flex-1 min-w-0 w-full">
           <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -225,8 +225,8 @@ export default function PatientListView({ triggerToast }: { triggerToast: (messa
         </button>
       </div>
 
-      <div className="min-w-0 max-w-full bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-sm overflow-hidden overflow-x-auto">
-        <table className="w-full min-w-[700px] text-left">
+      <div className="min-w-0 max-w-full bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-sm overflow-hidden md:overflow-x-auto">
+        <table className="hidden md:table w-full min-w-[700px] text-left">
           <thead>
             <tr className="bg-neutral-50 dark:bg-neutral-850 text-[10px] font-black uppercase text-neutral-400 tracking-widest border-b border-neutral-100 dark:border-neutral-800">
               <th className="px-6 py-4">Paciente</th>
@@ -277,15 +277,70 @@ export default function PatientListView({ triggerToast }: { triggerToast: (messa
             })}
           </tbody>
         </table>
+
+        <div className="md:hidden divide-y divide-neutral-100 dark:divide-neutral-800">
+          {filteredPatients.map((p) => {
+            const prof = profiles?.find((prof) => prof.id === p.profile_id);
+            const isKebabActive = activeKebabId === p.id;
+            return (
+              <article
+                key={p.id}
+                onClick={() => setActivePatientId(p.id)}
+                className="min-w-0 overflow-hidden p-4 hover:bg-neutral-50 dark:hover:bg-neutral-850 cursor-pointer transition-colors"
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center font-black text-teal-700 dark:text-teal-400 text-xs">
+                    {prof?.nome_completo.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1 pt-1">
+                    <p className="break-words text-xs font-black text-neutral-900 dark:text-white transition-colors">{prof?.nome_completo}</p>
+                    <p className="mt-0.5 break-words text-[10px] font-bold text-neutral-400">{p.patologia_principal}</p>
+                  </div>
+                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <PatientActionsMenu
+                      isOpen={isKebabActive}
+                      onToggle={() => setActiveKebabId(isKebabActive ? null : p.id)}
+                      onClose={() => setActiveKebabId(null)}
+                      onEdit={(e) => handleOpenEditPatientModal(p, e)}
+                      onDelete={(e) => handleInactivatePatient(p, e)}
+                      status={p.status}
+                      onReactivate={(e) => {
+                        e.stopPropagation();
+                        updatePatientMutation.mutate({ id: p.id, updates: { status: 'ativo' } });
+                        triggerToast(`Paciente ${prof?.nome_completo} reativado!`);
+                        setActiveKebabId(null);
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <dl className="mt-3 grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 border-t border-neutral-100 dark:border-neutral-800 pt-3">
+                  <div className="min-w-0">
+                    <dt className="text-[9px] font-black uppercase tracking-wider text-neutral-400">CPF</dt>
+                    <dd className="break-all text-xs font-mono font-medium text-neutral-500">{prof?.documento_cpf || '-'}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-[9px] font-black uppercase tracking-wider text-neutral-400">Telefone</dt>
+                    <dd className="break-all text-xs font-medium text-neutral-500">{prof?.telefone || '-'}</dd>
+                  </div>
+                  <div className="min-w-0 col-span-2">
+                    <dt className="text-[9px] font-black uppercase tracking-wider text-neutral-400">E-mail</dt>
+                    <dd className="break-all text-xs font-medium text-neutral-500">{prof?.email || '-'}</dd>
+                  </div>
+                </dl>
+              </article>
+            );
+          })}
+        </div>
       </div>
 
       {/* RODAPÉ DE PAGINAÇÃO PADRONIZADO E SEMPRE VISÍVEL */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-neutral-100 dark:border-neutral-800/40">
-        <p className="text-[11px] font-semibold text-neutral-400 dark:text-neutral-500">
+      <div className="min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-neutral-100 dark:border-neutral-800/40">
+        <p className="min-w-0 break-words text-[11px] font-semibold text-neutral-400 dark:text-neutral-500">
           Mostrando <span className="font-bold text-neutral-700 dark:text-neutral-300">{startResult}</span> a <span className="font-bold text-neutral-700 dark:text-neutral-300">{endResult}</span> de <span className="font-bold text-neutral-700 dark:text-neutral-300">{totalPatientsCount}</span> resultados
         </p>
 
-        <div className="flex items-center gap-1">
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-1">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
